@@ -1,0 +1,251 @@
+/* ═══════════════════════════════════════════════════════════
+   Multi-Agent Research Assistant — Custom Streamlit Theme
+   Premium dark glassmorphism with animated gradients
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Google Font Import ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* ── Global Overrides ── */
+html, body, [class*="stApp"] {
+    font-family: 'Inter', sans-serif !important;
+}
+
+.stApp {
+    background: linear-gradient(135deg, #0a0a1a 0%, #0f0f2e 30%, #1a0a2e 60%, #0a0a1a 100%) !important;
+}
+
+/* ── Hide Streamlit branding ── */
+#MainMenu, footer, header {
+    visibility: hidden;
+}
+
+/* ── Hero Title Gradient ── */
+.hero-title {
+    background: linear-gradient(135deg, #6C63FF 0%, #00D2FF 50%, #43E97B 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 3rem;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 0;
+    animation: gradient-shift 6s ease-in-out infinite;
+    background-size: 200% 200%;
+    line-height: 1.2;
+}
+
+.hero-subtitle {
+    text-align: center;
+    color: #8888AA;
+    font-size: 1.1rem;
+    font-weight: 300;
+    margin-top: 8px;
+    margin-bottom: 32px;
+    letter-spacing: 0.5px;
+}
+
+@keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* ── Glowing Input ── */
+.stTextInput > div > div > input,
+.stTextArea > div > div > textarea {
+    background: rgba(26, 26, 46, 0.8) !important;
+    border: 1px solid rgba(108, 99, 255, 0.3) !important;
+    border-radius: 12px !important;
+    color: #E0E0FF !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 1rem !important;
+    padding: 14px 18px !important;
+    transition: all 0.3s ease !important;
+}
+
+.stTextInput > div > div > input:focus,
+.stTextArea > div > div > textarea:focus {
+    border-color: #6C63FF !important;
+    box-shadow: 0 0 20px rgba(108, 99, 255, 0.25) !important;
+}
+
+/* ── Primary Button ── */
+.stButton > button {
+    background: linear-gradient(135deg, #6C63FF, #00D2FF) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 12px 32px !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    font-family: 'Inter', sans-serif !important;
+    transition: all 0.3s ease !important;
+    letter-spacing: 0.5px !important;
+}
+
+.stButton > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 30px rgba(108, 99, 255, 0.4) !important;
+}
+
+/* ── Sidebar ── */
+[data-testid="stSidebar"] {
+    background: rgba(15, 15, 30, 0.95) !important;
+    border-right: 1px solid rgba(108, 99, 255, 0.15) !important;
+}
+
+[data-testid="stSidebar"] .stSelectbox label,
+[data-testid="stSidebar"] .stSlider label,
+[data-testid="stSidebar"] .stNumberInput label {
+    color: #8888AA !important;
+    font-size: 0.85rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1.5px !important;
+}
+
+/* ── Agent Status Cards ── */
+.agent-card {
+    background: rgba(26, 26, 46, 0.6);
+    border: 1px solid rgba(108, 99, 255, 0.15);
+    border-radius: 16px;
+    padding: 20px;
+    margin: 8px 0;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.agent-card.active {
+    border-color: #6C63FF;
+    box-shadow: 0 0 20px rgba(108, 99, 255, 0.15);
+}
+
+.agent-card.complete {
+    border-color: #43E97B;
+    box-shadow: 0 0 15px rgba(67, 233, 123, 0.1);
+}
+
+.agent-card .agent-icon {
+    font-size: 1.5rem;
+    margin-right: 10px;
+}
+
+.agent-card .agent-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #E0E0FF;
+}
+
+.agent-card .agent-status {
+    font-size: 0.85rem;
+    color: #8888AA;
+    margin-top: 4px;
+}
+
+/* ── Glass Card ── */
+.glass-card {
+    background: rgba(26, 26, 46, 0.4);
+    border: 1px solid rgba(108, 99, 255, 0.12);
+    border-radius: 20px;
+    padding: 28px;
+    margin: 16px 0;
+    backdrop-filter: blur(16px);
+}
+
+/* ── Expander ── */
+.streamlit-expanderHeader {
+    background: rgba(26, 26, 46, 0.6) !important;
+    border-radius: 12px !important;
+    color: #E0E0FF !important;
+    font-family: 'Inter', sans-serif !important;
+}
+
+/* ── Spinner ── */
+.stSpinner > div {
+    border-top-color: #6C63FF !important;
+}
+
+/* ── Metrics ── */
+[data-testid="stMetricValue"] {
+    color: #6C63FF !important;
+    font-family: 'Inter', sans-serif !important;
+}
+
+/* ── Progress Bar ── */
+.stProgress > div > div > div > div {
+    background: linear-gradient(90deg, #6C63FF, #00D2FF, #43E97B) !important;
+    border-radius: 10px !important;
+}
+
+/* ── Download Button ── */
+.stDownloadButton > button {
+    background: rgba(26, 26, 46, 0.8) !important;
+    border: 1px solid rgba(108, 99, 255, 0.3) !important;
+    color: #E0E0FF !important;
+    border-radius: 12px !important;
+    font-family: 'Inter', sans-serif !important;
+    transition: all 0.3s ease !important;
+}
+
+.stDownloadButton > button:hover {
+    border-color: #6C63FF !important;
+    box-shadow: 0 0 15px rgba(108, 99, 255, 0.2) !important;
+}
+
+/* ── Markdown Report Styling ── */
+.report-container h1 {
+    color: #E0E0FF;
+    border-bottom: 2px solid rgba(108, 99, 255, 0.3);
+    padding-bottom: 12px;
+}
+
+.report-container h2 {
+    color: #6C63FF;
+    margin-top: 32px;
+}
+
+.report-container h3 {
+    color: #00D2FF;
+}
+
+.report-container a {
+    color: #43E97B;
+    text-decoration: none;
+}
+
+.report-container blockquote {
+    border-left: 3px solid #6C63FF;
+    padding-left: 16px;
+    color: #8888AA;
+    font-style: italic;
+}
+
+/* ── Pulse Animation for Active Agent ── */
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.pulse {
+    animation: pulse 1.5s infinite;
+}
+
+/* ── Tabs ── */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 8px;
+}
+
+.stTabs [data-baseweb="tab"] {
+    background-color: rgba(26, 26, 46, 0.6) !important;
+    border-radius: 10px !important;
+    color: #8888AA !important;
+    font-family: 'Inter', sans-serif !important;
+    padding: 8px 20px !important;
+}
+
+.stTabs [aria-selected="true"] {
+    background-color: rgba(108, 99, 255, 0.2) !important;
+    color: #6C63FF !important;
+    border-bottom: 2px solid #6C63FF !important;
+}
