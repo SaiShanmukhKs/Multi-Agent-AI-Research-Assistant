@@ -1,8 +1,8 @@
 """
-Web Scraper Tool — Trafilatura-based content extraction.
+Web Scraper Tool — High-performance Trafilatura-based content extraction.
 
-Fetches full-page content from URLs, strips boilerplate, and returns
-clean text along with metadata (title, author, date).
+Fetches full-page content from URLs, strips boilerplate in a single pass,
+and returns clean text along with metadata (title, author, date).
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def scrape_url(url: str) -> dict | None:
     """
-    Fetch and extract clean content from a single URL.
+    Fetch and extract clean content from a single URL in a single fast pass.
 
     Args:
         url: The web page URL to scrape.
@@ -35,38 +35,33 @@ def scrape_url(url: str) -> dict | None:
             logger.warning(f"Failed to download: {url}")
             return None
 
-        # Extract main text content
-        text = trafilatura.extract(
+        # Extract content & metadata in a SINGLE pass using JSON output format
+        data_json = trafilatura.extract(
             downloaded,
+            output_format="json",
             include_comments=False,
             include_tables=True,
             favor_precision=True,
         )
 
-        if not text or len(text.strip()) < 50:
-            logger.warning(f"Insufficient content extracted from: {url}")
+        if not data_json:
             return None
 
-        # Extract metadata separately
-        metadata_json = trafilatura.extract(
-            downloaded,
-            output_format="json",
-            include_comments=False,
-        )
+        try:
+            parsed = json.loads(data_json)
+        except json.JSONDecodeError:
+            return None
 
-        metadata = {}
-        if metadata_json:
-            try:
-                metadata = json.loads(metadata_json)
-            except json.JSONDecodeError:
-                pass
+        text = (parsed.get("text") or "").strip()
+        if not text or len(text) < 50:
+            return None
 
         result = {
             "url": url,
-            "title": metadata.get("title", ""),
-            "author": metadata.get("author", ""),
-            "date": metadata.get("date", ""),
-            "text": text.strip(),
+            "title": parsed.get("title", ""),
+            "author": parsed.get("author", ""),
+            "date": parsed.get("date", ""),
+            "text": text,
             "word_count": len(text.split()),
         }
         logger.info(f"Extracted {result['word_count']} words from: {url}")
@@ -79,7 +74,7 @@ def scrape_url(url: str) -> dict | None:
 
 def scrape_urls(urls: list[str], max_urls: int | None = None) -> list[dict]:
     """
-    Scrape multiple URLs in parallel using a thread pool.
+    Scrape multiple URLs in parallel using a thread pool with high concurrency.
 
     Args:
         urls: List of URLs to scrape.
@@ -92,12 +87,15 @@ def scrape_urls(urls: list[str], max_urls: int | None = None) -> list[dict]:
     urls_to_process = urls[:limit]
 
     results = []
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    with ThreadPoolExecutor(max_workers=8) as executor:
         future_to_url = {executor.submit(scrape_url, url): url for url in urls_to_process}
         for future in as_completed(future_to_url):
-            result = future.result()
-            if result:
-                results.append(result)
+            try:
+                res = future.result()
+                if res:
+                    results.append(res)
+            except Exception as e:
+                logger.warning(f"Failed url scraping: {e}")
 
     logger.info(f"Successfully scraped {len(results)}/{len(urls_to_process)} URLs")
     return results

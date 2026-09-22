@@ -40,7 +40,7 @@ def _search_tavily(query: str, max_results: int) -> list[dict]:
         response = client.search(
             query=query,
             max_results=max_results,
-            search_depth="advanced",
+            search_depth="basic",
             include_answer=False,
         )
         results = []

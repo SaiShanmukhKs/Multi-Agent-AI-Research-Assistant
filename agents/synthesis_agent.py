@@ -199,7 +199,11 @@ def _run_synthesis(query: str, extracted_info: str, rag_context: str) -> dict:
 
     try:
         response = llm.invoke(messages)
-        content = response.content.strip()
+        raw_content = response.content
+        if isinstance(raw_content, list):
+            content = "".join([str(item.get("text", item)) if isinstance(item, dict) else str(item) for item in raw_content]).strip()
+        else:
+            content = str(raw_content).strip()
 
         # Clean up potential markdown code block wrapping
         if content.startswith("```"):

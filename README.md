@@ -1,79 +1,102 @@
-# 🔬 Multi-Agent Research Assistant
+# Multi-Agent AI Research Assistant
 
-A system where **4 specialized AI agents** collaborate to research any topic end-to-end — from searching the web to delivering a polished, cited research report with visual elements.
+A state-of-the-art, autonomous multi-agent research platform where **4 specialized AI agents** collaborate using **LangGraph** and **Google Gemini 2.5** to conduct end-to-end web research, extract facts, store vector chunks, synthesize insights, and generate polished, cited research reports with interactive visual analytics.
 
-> Give it a question like *"What are the latest advancements in quantum error correction?"* and it autonomously produces a comprehensive report.
+---
 
-## Architecture
+## 🏗️ Architecture: Decoupled FastAPI + React (Vite)
 
 ```
-User Query → 🔍 Search Agent → 📄 Reader Agent → 🧠 Synthesis Agent → ✍️ Writer Agent → Report
-                     ↑                                    │
-                     └──── Gap-Filling Loop ───────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              REACT FRONTEND                                 │
+│                   (Vite + React.js + Recharts + Lucide)                     │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │ REST API + Server-Sent Events (SSE)
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              FASTAPI BACKEND                                │
+│                                (Python 3.14)                                │
+│                                      │                                      │
+│                  ┌───────────────────┴───────────────────┐                  │
+│                  │           LangGraph Pipeline           │                  │
+│                  └───────────────────┬───────────────────┘                  │
+│                                      │                                      │
+│    🔍 Scout Agent    📄 Analyst Agent   🧠 Thinker Agent   ✍️ Writer Agent │
+│   (Search & Queries)  (RAG & ChromaDB)    (Synthesis)       (Drafting)      │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### The 4 Agents
+---
 
-| Agent | Role | What It Does |
-|-------|------|-------------|
-| 🔍 **Scout** | Web Search | Decomposes query into sub-queries, searches web, ranks results |
-| 📄 **Analyst** | Document Reader | Scrapes pages, extracts key info, chunks & embeds into vector DB |
-| 🧠 **Thinker** | Synthesis | Cross-references sources, finds patterns, identifies gaps |
-| ✍️ **Writer** | Report Writer | Generates polished Markdown/HTML report with citations & visuals |
+## ⚡ Quick Start
 
-### Tech Stack
-
-| Component | Technology |
-|-----------|-----------|
-| Agent Framework | LangGraph |
-| LLM | Google Gemini 2.0 Flash |
-| Web Search | Tavily API / DuckDuckGo (fallback) |
-| Web Scraping | Trafilatura |
-| Embeddings | Gemini text-embedding-004 |
-| Vector DB | ChromaDB (in-memory) |
-| Visualizations | Plotly |
-| Frontend | Streamlit |
-
-## Quick Start
-
-### 1. Setup Environment
+### 1. Backend Setup (FastAPI)
 
 ```bash
-# Create virtual environment
-python -m venv .venv
+# Clone the repository
+git clone https://github.com/SaiShanmukhKs/Multi-Agent-AI-Research-Assistant.git
+cd Multi-Agent-AI-Research-Assistant
+
+# Create & activate virtual environment
+python3 -m venv .venv
 source .venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
-```
 
-### 2. Configure API Keys
-
-```bash
-# Copy the template
+# Configure environment variables
 cp .env.example .env
+# Edit .env and add your GOOGLE_API_KEY (from https://aistudio.google.com/app/apikey)
 
-# Edit .env and add your keys
-# REQUIRED: GOOGLE_API_KEY (get at https://aistudio.google.com/app/apikey)
-# OPTIONAL: TAVILY_API_KEY (get at https://app.tavily.com/)
+# Start FastAPI server (runs on http://localhost:8000)
+uvicorn backend.main:app --reload --port 8000
 ```
 
-### 3. Run
+### 2. Frontend Setup (React.js + Vite)
 
 ```bash
-streamlit run app.py
+# Navigate to frontend directory
+cd frontend
+
+# Install Node dependencies
+npm install
+
+# Start Vite dev server (runs on http://localhost:5173)
+npm run dev
 ```
 
-## Features
+---
 
-- **Autonomous Research Pipeline**: 4 agents work in sequence with an optional gap-filling feedback loop
-- **RAG Pipeline**: Documents are chunked, embedded, and stored in ChromaDB for semantic retrieval
-- **Visual Reports**: Plotly charts (bar, pie, radar, timeline), word clouds, and key stat cards
-- **Audience Adaptation**: Reports adapt tone for academic, business, or casual audiences
-- **Dual Search**: Tavily API for enhanced search, DuckDuckGo as free fallback
-- **Export**: Download reports as Markdown or styled HTML
-- **Live Tracking**: Watch each agent's progress in real-time
+## 🤖 The 4 Specialized Agents
 
-## License
+1. **🔍 Agent 1: Scout Agent (Web Search)**
+   - Decomposes the research topic into 3–5 targeted sub-queries.
+   - Searches the web using Tavily API / DuckDuckGo search fallback.
+   - Filters and ranks search hits.
 
-MIT
+2. **📄 Agent 2: Analyst Agent (Document Reader & RAG)**
+   - Scrapes text using `trafilatura`.
+   - Chunks documents (500–1000 tokens) with token overlap.
+   - Generates vector embeddings via `gemini-embedding-001` and stores them in **ChromaDB**.
+
+3. **🧠 Agent 3: Thinker Agent (Synthesis & Analysis)**
+   - Performs RAG retrieval from ChromaDB.
+   - Identifies key consensus, conflicting viewpoints, and knowledge gaps.
+   - Generates structured chart data (Bar charts, sentiment metrics).
+
+4. **✍️ Agent 4: Writer Agent (Report Generation)**
+   - Produces structured research reports tailored for Business, Academic, or Casual audiences.
+   - Includes executive summaries, formatted citations, and bibliographies.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Backend**: Python 3.14, FastAPI, Uvicorn, LangGraph, LangChain, Google GenAI SDK (`gemini-2.5-flash`), ChromaDB, Trafilatura, Tavily / DuckDuckGo.
+- **Frontend**: React.js (JavaScript), Vite, Recharts, Lucide-React, React-Markdown, Remark-GFM, Vanilla CSS (Glassmorphism design system).
+
+---
+
+## 📄 License
+
+MIT License. Free for commercial and non-commercial use.

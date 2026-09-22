@@ -2,13 +2,14 @@
 Agent 1: Web Search Agent (The Scout) 🔍
 
 Breaks the user's research query into targeted sub-queries and searches
-the web for each. Returns ranked, deduplicated results.
+the web for each in parallel. Returns ranked, deduplicated results.
 """
 
 from __future__ import annotations
 
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -42,7 +43,7 @@ def run_search_agent(state: ResearchState) -> dict:
     Execute the Web Search Agent.
 
     1. Uses Gemini to decompose the query into sub-queries
-    2. Searches the web for each sub-query
+    2. Searches the web for sub-queries in parallel
     3. Deduplicates and ranks results
 
     Args:
@@ -68,11 +69,16 @@ def run_search_agent(state: ResearchState) -> dict:
         # Fresh run: decompose the query
         sub_queries = _decompose_query(query)
 
-    # Search the web for each sub-query
+    # Search the web for all sub-queries IN PARALLEL for maximum speed
     all_results = []
-    for sq in sub_queries:
-        results = web_search.search(sq)
-        all_results.extend(results)
+    with ThreadPoolExecutor(max_workers=min(5, len(sub_queries))) as executor:
+        future_to_sq = {executor.submit(web_search.search, sq): sq for sq in sub_queries}
+        for future in as_completed(future_to_sq):
+            try:
+                results = future.result()
+                all_results.extend(results)
+            except Exception as e:
+                logger.warning(f"Failed web search for a sub-query: {e}")
 
     # Deduplicate by URL
     seen_urls = set()
@@ -110,7 +116,11 @@ def _decompose_query(query: str) -> list[str]:
 
     try:
         response = llm.invoke(messages)
-        content = response.content.strip()
+        raw_content = response.content
+        if isinstance(raw_content, list):
+            content = "".join([str(item.get("text", item)) if isinstance(item, dict) else str(item) for item in raw_content]).strip()
+        else:
+            content = str(raw_content).strip()
 
         # Clean up potential markdown code block wrapping
         if content.startswith("```"):

@@ -1,8 +1,8 @@
 """
 Agent 2: Document Reader Agent (The Analyst) 📄
 
-Deep-reads web pages, extracts detailed information, chunks content,
-and stores it in the vector database for retrieval by the Synthesis Agent.
+Deep-reads web pages, extracts detailed information in a SINGLE batch pass to avoid API rate limits,
+chunks content, and stores it in the vector database for retrieval by the Synthesis Agent.
 """
 
 from __future__ import annotations
@@ -19,25 +19,25 @@ from utils.chunker import chunk_text
 
 logger = logging.getLogger(__name__)
 
-EXTRACTION_PROMPT = """You are a research content analyst. Given the following text
-extracted from a web page, extract the most important information.
+BATCH_EXTRACTION_PROMPT = """You are a research content analyst. Given the following text
+from multiple scraped web pages, analyze and extract key information from EACH source.
 
-Source URL: {url}
-Source Title: {title}
+Scraped Sources:
+{sources_text}
 
-Text:
-{text}
+Return a JSON array of objects, one for each source:
+[
+  {{
+    "url": "source_url",
+    "key_facts": ["most important factual claims"],
+    "data_points": ["quantitative statistics or measurements"],
+    "quotes": ["notable direct quotes"],
+    "entities": ["key organizations, technologies, or people"],
+    "summary": "2-3 sentence summary of main points"
+  }}
+]
 
-Extract and return a JSON object with these keys:
-{{
-    "key_facts": ["list of the most important factual claims"],
-    "data_points": ["any quantitative data, statistics, or measurements mentioned"],
-    "quotes": ["notable direct quotes with attribution"],
-    "entities": ["key people, organizations, technologies mentioned"],
-    "summary": "A 2-3 sentence summary of the main points"
-}}
-
-IMPORTANT: Return ONLY valid JSON, no other text.
+IMPORTANT: Return ONLY valid JSON array, no other text.
 """
 
 
@@ -46,7 +46,7 @@ def run_reader_agent(state: ResearchState) -> dict:
     Execute the Document Reader Agent.
 
     1. Scrapes content from search result URLs
-    2. Extracts key information using Gemini
+    2. Batch-extracts key information using Gemini in 1 efficient API call
     3. Chunks and embeds content in ChromaDB
 
     Args:
@@ -64,9 +64,9 @@ def run_reader_agent(state: ResearchState) -> dict:
 
     logger.info(f"📄 Reader Agent: Processing {len(search_results)} URLs")
 
-    # Step 1: Scrape web pages
+    # Step 1: Scrape web pages in parallel
     urls = [r["url"] for r in search_results if r.get("url")]
-    scraped_docs = web_scraper.scrape_urls(urls)
+    scraped_docs = web_scraper.scrape_urls(urls, max_urls=5)
 
     if not scraped_docs:
         return {
@@ -77,21 +77,13 @@ def run_reader_agent(state: ResearchState) -> dict:
     # Step 2: Create/reuse a vector store collection
     collection_name = state.get("vector_store_id") or vector_store.create_collection()
 
-    # Step 3: Process each document
-    extracted_content = []
+    # Step 3: Batch process documents in 1 single LLM call to prevent 429 rate limit backoffs
+    extracted_content = _batch_extract_information(scraped_docs)
+
+    # Step 4: Chunk text for vector store
     all_chunks = []
     all_metadatas = []
-
     for doc in scraped_docs:
-        # Extract key information using Gemini
-        extraction = _extract_information(doc)
-        if extraction:
-            extraction["url"] = doc["url"]
-            extraction["title"] = doc.get("title", "")
-            extraction["word_count"] = doc.get("word_count", 0)
-            extracted_content.append(extraction)
-
-        # Chunk the full text for vector storage
         chunks = chunk_text(doc["text"])
         for i, chunk in enumerate(chunks):
             all_chunks.append(chunk)
@@ -102,7 +94,7 @@ def run_reader_agent(state: ResearchState) -> dict:
                 "total_chunks": str(len(chunks)),
             })
 
-    # Step 4: Store chunks in ChromaDB
+    # Step 5: Store chunks in ChromaDB
     stored_count = 0
     if all_chunks:
         stored_count = vector_store.add_documents(
@@ -126,38 +118,45 @@ def run_reader_agent(state: ResearchState) -> dict:
     }
 
 
-def _extract_information(doc: dict) -> dict | None:
-    """Use Gemini to extract structured information from a document."""
+def _batch_extract_information(docs: list[dict]) -> list[dict]:
+    """Combine documents and run 1 single LLM batch call to stay well below 5 RPM limits."""
     llm = get_llm(temperature=0.2)
 
-    # Truncate very long texts to avoid token limits
-    text = doc["text"][:6000]
+    formatted_sources = []
+    for i, d in enumerate(docs):
+        truncated_text = d["text"][:2500]
+        formatted_sources.append(
+            f"--- SOURCE {i+1} ---\nURL: {d['url']}\nTitle: {d.get('title', '')}\nText:\n{truncated_text}\n"
+        )
+
+    sources_text = "\n".join(formatted_sources)
 
     messages = [
         SystemMessage(content="You are a research content analyst. Return only valid JSON."),
-        HumanMessage(content=EXTRACTION_PROMPT.format(
-            url=doc["url"],
-            title=doc.get("title", "Unknown"),
-            text=text,
-        )),
+        HumanMessage(content=BATCH_EXTRACTION_PROMPT.format(sources_text=sources_text)),
     ]
 
     try:
         response = llm.invoke(messages)
         content = response.content.strip()
 
-        # Clean up potential markdown code block wrapping
         if content.startswith("```"):
             content = content.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
 
-        return json.loads(content)
-    except (json.JSONDecodeError, Exception) as e:
-        logger.warning(f"Failed to extract info from {doc['url']}: {e}")
-        # Return a basic extraction as fallback
-        return {
+        parsed = json.loads(content)
+        if isinstance(parsed, list):
+            return parsed
+    except Exception as e:
+        logger.warning(f"Batch extraction fallback: {e}")
+
+    # Fallback to simple summaries if batch fails
+    return [
+        {
+            "url": d["url"],
+            "title": d.get("title", ""),
             "key_facts": [],
             "data_points": [],
-            "quotes": [],
-            "entities": [],
-            "summary": text[:300],
+            "summary": d["text"][:300],
         }
+        for d in docs
+    ]

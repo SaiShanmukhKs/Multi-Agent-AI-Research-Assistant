@@ -26,4 +26,5 @@ def get_llm(temperature: float | None = None, max_tokens: int | None = None) -> 
         google_api_key=config.GOOGLE_API_KEY,
         temperature=temperature if temperature is not None else config.GEMINI_TEMPERATURE,
         max_output_tokens=max_tokens or config.GEMINI_MAX_TOKENS,
+        max_retries=1,
     )
